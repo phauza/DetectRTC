@@ -81,7 +81,8 @@
 
     var isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
     var isFirefox = typeof window.InstallTrigger !== 'undefined';
-    var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
+    var isSafari = navigator.vendor && navigator.vendor.indexOf('Apple') > -1 &&
+        navigator.userAgent && !navigator.userAgent.match('CriOS');
     var isChrome = !!window.chrome && !isOpera;
     var isIE = typeof document !== 'undefined' && !!document.documentMode && !isEdge;
 
@@ -659,6 +660,8 @@
         canEnumerate = true;
     } else if (navigator.mediaDevices && !!navigator.mediaDevices.enumerateDevices) {
         canEnumerate = true;
+    } else if (isSafari && !navigator.mediaDevices) {
+        canEnumerate = true;
     }
 
     var hasMicrophone = false;
@@ -704,15 +707,21 @@
         // to prevent duplication
         var alreadyUsedDevices = {};
 
-        navigator.enumerateDevices(function(devices) {
+        navigator.enumerateDevices(function(devicesPar) {
+            
+            var devices = Array.from(devicesPar);
             devices.forEach(function(_device) {
                 var device = {};
-                for (var d in _device) {
-                    try {
-                        if (typeof _device[d] !== 'function') {
-                            device[d] = _device[d];
-                        }
-                    } catch (e) {}
+                if (isSafari) {
+                    device = Object.create(_device);
+                } else {
+                    for (var d in _device) {
+                        try {
+                            if (typeof _device[d] !== 'function') {
+                                device[d] = _device[d];
+                            }
+                        } catch (e) {}
+                    }
                 }
 
                 if (alreadyUsedDevices[device.deviceId + device.label]) {
